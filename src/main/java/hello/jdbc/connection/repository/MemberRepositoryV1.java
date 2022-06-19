@@ -1,15 +1,25 @@
 package hello.jdbc.connection.repository;
 
-import com.sun.jdi.event.StepEvent;
 import hello.jdbc.connection.DBCConnectionUtil;
 import hello.jdbc.connection.domain.Member;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.support.JdbcUtils;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.NoSuchElementException;
 
+/**
+ * JDBC - dataSource 사용, JDBC UTIL 사용
+ */
 @Slf4j
-public class MemberRepositoryV0 {
+public class MemberRepositoryV1 {
+
+    private final DataSource dataSource;
+
+    public MemberRepositoryV1(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     public Member findById(String memberId) throws SQLException {
         String sql = "select * from member where member_id = ?";
@@ -112,33 +122,17 @@ public class MemberRepositoryV0 {
     }
 
     private void close(Connection con, Statement stmt, ResultSet resultSet) {
-
-        if (resultSet != null) {
-            try {
-                resultSet.close();
-            } catch (SQLException e) {
-                log.info("error", e);
-            }
-        }
-
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (SQLException e) {
-                log.info("error", e);
-            }
-        }
-
-        if (con != null) {
-            try {
-                con.close();
-            } catch (SQLException e) {
-                log.info("error", e);
-            }
-        }
+        // 해당 유틸안에 connection, prepareStatement, resultSet을 종료시키는 코드가 전부들어가있음
+        JdbcUtils.closeResultSet(resultSet);
+        JdbcUtils.closeStatement(stmt);
+        JdbcUtils.closeConnection(con);
     }
 
-    private Connection getConnection() {
-        return DBCConnectionUtil.getConnection();
+    private Connection getConnection() throws SQLException {
+        Connection connection = dataSource.getConnection();
+        log.info("get connection = {}, class = {}", connection, connection.getClass());
+
+        return connection;
     }
 }
+
